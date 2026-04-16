@@ -140,17 +140,6 @@ src/
             └── ProxyStatus.tsx      # 反代状态
 ```
 
-## Token 获取流程
-
-详见 [TOKEN_FLOW.md](./TOKEN_FLOW.md)
-
-1. 使用 Playwright 自动化注册 Windsurf 账号
-2. 从 IMAP 邮箱读取验证码
-3. 自动填写验证码
-4. 从 localStorage 提取 `devin_session_token`
-5. 调用 `https://api.codeium.com/register_user/` 转换为 API Key
-6. 通过 Language Server 调用 AI 模型
-
 ## 配置文件
 
 - `C:\Users\{用户名}\AppData\Roaming\ai-account-manager\config.json` - 账号数据

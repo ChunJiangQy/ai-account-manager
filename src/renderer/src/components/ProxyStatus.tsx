@@ -21,7 +21,7 @@ export default function ProxyStatus() {
 
         <div style={styles.statusItem}>
           <span style={styles.statusLabel}>兼容协议</span>
-          <span style={styles.statusValue}>OpenAI API</span>
+          <span style={styles.statusValue}>OpenAI API / Anthropic API</span>
         </div>
       </div>
 
@@ -34,7 +34,9 @@ export default function ProxyStatus() {
           <span style={styles.arrow}>{showUsage ? '▼' : '▶'}</span>
         </div>
         {showUsage && (
-          <pre style={styles.code}>{`curl http://localhost:3220/v1/chat/completions \\
+          <div>
+            <h4 style={styles.apiTitle}>OpenAI 格式</h4>
+            <pre style={styles.code}>{`curl http://localhost:3220/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -d '{
     "model": "gpt-4o-mini",
@@ -42,6 +44,18 @@ export default function ProxyStatus() {
       {"role": "user", "content": "Hello"}
     ]
   }'`}</pre>
+
+            <h4 style={styles.apiTitle}>Anthropic 格式</h4>
+            <pre style={styles.code}>{`curl http://localhost:3220/v1/messages \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "claude-sonnet-4-20250514",
+    "max_tokens": 1024,
+    "messages": [
+      {"role": "user", "content": "Hello"}
+    ]
+  }'`}</pre>
+          </div>
         )}
       </div>
 
@@ -58,6 +72,12 @@ export default function ProxyStatus() {
             <div style={styles.endpoint}>
               <span style={styles.method}>POST</span>
               <span style={styles.path}>/v1/chat/completions</span>
+              <span style={styles.badge}>OpenAI</span>
+            </div>
+            <div style={styles.endpoint}>
+              <span style={styles.method}>POST</span>
+              <span style={styles.path}>/v1/messages</span>
+              <span style={styles.badge}>Anthropic</span>
             </div>
             <div style={styles.endpoint}>
               <span style={styles.method}>GET</span>
@@ -120,6 +140,13 @@ const styles = {
     fontSize: '12px',
     color: '#666'
   },
+  apiTitle: {
+    fontSize: '14px',
+    marginTop: '15px',
+    marginBottom: '10px',
+    color: '#667eea',
+    fontWeight: 'bold' as const
+  },
   code: {
     background: '#1e1e1e',
     color: '#00ff00',
@@ -154,5 +181,13 @@ const styles = {
     fontSize: '14px',
     fontFamily: 'monospace',
     color: '#333'
+  },
+  badge: {
+    fontSize: '11px',
+    padding: '2px 6px',
+    background: '#667eea',
+    color: 'white',
+    borderRadius: '4px',
+    marginLeft: '10px'
   }
 }

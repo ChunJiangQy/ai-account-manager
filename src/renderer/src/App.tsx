@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import AccountList from './components/AccountList'
 import RegisterPanel from './components/RegisterPanel'
 import ProxyStatus from './components/ProxyStatus'
+import ProxyConfig from './components/ProxyConfig'
 import EmailConfig from './components/EmailConfig'
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'accounts' | 'register' | 'email' | 'proxy'>('accounts')
+  const [activeTab, setActiveTab] = useState<'accounts' | 'register' | 'email' | 'proxy' | 'proxyConfig'>('accounts')
   const [accounts, setAccounts] = useState<any[]>([])
   useEffect(() => {
     loadAccounts()
@@ -45,6 +46,12 @@ export default function App() {
           >
             反代服务
           </button>
+          <button
+            style={{...styles.tab, ...(activeTab === 'proxyConfig' ? styles.tabActive : {})}}
+            onClick={() => setActiveTab('proxyConfig')}
+          >
+            模型映射
+          </button>
         </div>
       </div>
 
@@ -53,6 +60,7 @@ export default function App() {
         {activeTab === 'register' && <RegisterPanel onSuccess={loadAccounts} />}
         {activeTab === 'email' && <EmailConfig />}
         {activeTab === 'proxy' && <ProxyStatus />}
+        {activeTab === 'proxyConfig' && <ProxyConfig />}
       </div>
     </div>
   )

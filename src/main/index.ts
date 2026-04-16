@@ -8,6 +8,7 @@ import {
   deleteAccount
 } from './services/account-manager'
 import { getEmailConfig, saveEmailConfig } from './services/email-config'
+import { getProxyConfig, saveProxyConfig } from './services/proxy-config'
 import { registerWindsurf } from './services/windsurf/register'
 import { ensureLs } from './services/windsurf/windsurf-api/langserver.js'
 
@@ -65,6 +66,15 @@ function setupIPC(): void {
 
   ipcMain.handle('save-email-config', (_, config) => {
     saveEmailConfig(config)
+    return { success: true }
+  })
+
+  ipcMain.handle('get-proxy-config', () => {
+    return getProxyConfig()
+  })
+
+  ipcMain.handle('save-proxy-config', (_, config) => {
+    saveProxyConfig(config)
     return { success: true }
   })
 

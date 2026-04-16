@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express'
 import { getAvailableAccount, updateAccount } from '../services/account-manager'
+import { handleAnthropicChat } from './anthropic'
 
 const app = express()
 app.use(express.json())
@@ -52,6 +53,9 @@ app.post('/v1/chat/completions', async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message })
   }
 })
+
+// Anthropic 兼容的聊天接口
+app.post('/v1/messages', handleAnthropicChat)
 
 // 获取可用模型列表
 app.get('/v1/models', (req: Request, res: Response) => {

@@ -11,6 +11,10 @@ contextBridge.exposeInMainWorld('api', {
   getEmailConfig: () => ipcRenderer.invoke('get-email-config'),
   saveEmailConfig: (config: any) => ipcRenderer.invoke('save-email-config', config),
 
+  // 代理配置
+  getProxyConfig: () => ipcRenderer.invoke('get-proxy-config'),
+  saveProxyConfig: (config: any) => ipcRenderer.invoke('save-proxy-config', config),
+
   // Windsurf 注册
   registerWindsurf: (options: any) => ipcRenderer.invoke('register-windsurf', options)
 })

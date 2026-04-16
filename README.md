@@ -217,6 +217,8 @@ src/
    - 需要有效的 apiKey 才能使用 Cascade 流程（如 glm-5.1）
    - Legacy 流程模型（如 gpt-4o-mini）可以正常工作
 
+感谢:https://github.com/dwgx/WindsurfAPI 仓库的支持
+
 ## 免责声明
 
 本项目仅供学习和研究使用，请勿用于商业用途。使用本项目所产生的一切后果由使用者自行承担。

@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('api', {
   getAccounts: () => ipcRenderer.invoke('get-accounts'),
   addAccount: (account: any) => ipcRenderer.invoke('add-account', account),
   deleteAccount: (id: string) => ipcRenderer.invoke('delete-account', id),
+  toggleAccountEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('toggle-account-enabled', id, enabled),
   importAccounts: (accounts: any[]) => ipcRenderer.invoke('import-accounts', accounts),
 
   // 邮箱配置

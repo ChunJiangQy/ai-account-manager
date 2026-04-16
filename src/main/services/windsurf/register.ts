@@ -17,16 +17,30 @@ export async function registerWindsurf(options: RegisterOptions): Promise<Accoun
   const browser = await chromium.launch({ headless })
   const page = await browser.newPage()
 
+  // 监听网络请求，提取 x-auth-token
+  let authToken: string | null = null
+  page.on('request', (request) => {
+    const headers = request.headers()
+    if (headers['x-auth-token']) {
+      authToken = headers['x-auth-token']
+      console.log('Found x-auth-token in request:', authToken.substring(0, 50) + '...')
+    }
+  })
+
   try {
     // 访问注册页面
+    console.log('Navigating to registration page...')
     await page.goto('https://windsurf.com/account/register')
     await page.waitForLoadState('domcontentloaded')
+    console.log('Page loaded')
 
     // 填写表单
+    console.log('Filling registration form...')
     const [firstName, lastName] = name.split(' ')
     await page.fill('input[placeholder*="first name" i]', firstName)
     await page.fill('input[placeholder*="last name" i]', lastName || 'User')
     await page.fill('input[type="email"]', email)
+    console.log('Form filled')
 
     // 勾选条款
     const checkbox = page.locator('input[type="checkbox"]').first()
@@ -45,13 +59,18 @@ export async function registerWindsurf(options: RegisterOptions): Promise<Accoun
     }
 
     // 提交
+    console.log('Submitting form...')
     await page.click('button:has-text("Continue"), button:has-text("Sign up")')
     await page.waitForTimeout(3000)
+    console.log('Form submitted')
 
     let extractedToken: string | null = null
 
     // 处理验证码
+    console.log('Checking for OTP inputs...')
     const otpInputs = await page.locator('input[type="text"]').all()
+    console.log(`Found ${otpInputs.length} text inputs`)
+
     if (otpInputs.length >= 6) {
       console.log('Waiting for verification code...')
 
@@ -120,15 +139,25 @@ export async function registerWindsurf(options: RegisterOptions): Promise<Accoun
               } catch {}
             }
 
+            // 打印所有 localStorage keys 用于调试
+            const allKeys: string[] = []
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i)
+              if (key) allKeys.push(key)
+            }
+            console.log('All localStorage keys:', allKeys)
+
             // 尝试从 Firebase SDK 提取 idToken
             let firebaseIdToken = null
             try {
               for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i)
                 if (key && key.startsWith('firebase:authUser:')) {
+                  console.log('Found Firebase auth key:', key)
                   const authData = JSON.parse(localStorage.getItem(key) || '{}')
                   if (authData.stsTokenManager && authData.stsTokenManager.accessToken) {
                     firebaseIdToken = authData.stsTokenManager.accessToken
+                    console.log('Extracted Firebase idToken')
                     break
                   }
                 }
@@ -149,74 +178,63 @@ export async function registerWindsurf(options: RegisterOptions): Promise<Accoun
           console.log('SessionToken extracted:', extractedToken?.substring(0, 30) + '...')
         } catch (error) {
           console.log('Failed to get token before navigation, will retry after page loads')
+          console.log('Error:', error)
         }
 
         // 如果还没有获取到 token，等待页面加载完成后再获取
         if (!extractedToken) {
+          console.log('Token not found, waiting for page to load...')
           await page.waitForLoadState('domcontentloaded')
           await page.waitForTimeout(2000)
+          console.log('Page loaded, checking localStorage again...')
         }
       } finally {
         // 确保断开 IMAP 连接
         reader.disconnect()
       }
+    } else {
+      console.log('No OTP inputs found, skipping verification code step')
     }
 
     // 提取 sessionToken（如果之前没有提取到）
+    console.log('Extracting final token...')
     let finalToken: string
     if (extractedToken) {
+      console.log('Using previously extracted token')
       finalToken = extractedToken
     } else {
+      console.log('Calling extractSessionToken...')
       finalToken = await extractSessionToken(page)
+      console.log('Token extracted:', finalToken.substring(0, 30) + '...')
     }
 
     await browser.close()
 
-    // 获取 Firebase ID token
-    let idToken: string
-    if ((finalToken as any).firebaseIdToken) {
-      // 从浏览器提取的 Firebase idToken
-      console.log('Using Firebase idToken from browser')
-      idToken = (finalToken as any).firebaseIdToken
-      finalToken = typeof finalToken === 'string' ? finalToken : (finalToken as any).sessionToken
+    // 优先使用从网络请求中提取的 x-auth-token
+    let finalApiKey: string
+    if (authToken) {
+      console.log('Using x-auth-token from network request')
+      finalApiKey = authToken
     } else {
-      // 通过 Firebase API 登录获取 idToken
-      console.log('Getting Firebase ID token via API...')
+      console.log('No x-auth-token found, using fallback method')
+      // Fallback: 尝试 Firebase 登录
       try {
-        idToken = await getFirebaseIdToken(email, password)
+        const idToken = await getFirebaseIdToken(email, password)
+        finalApiKey = await convertTokenToApiKey(idToken)
+        console.log(`API key obtained via Firebase: ${finalApiKey.slice(0, 15)}...`)
       } catch (error: any) {
         console.warn('Firebase API login failed:', error.message)
         console.warn('Will use sessionToken as fallback')
-        // 如果 Firebase 登录失败，使用 sessionToken 作为 fallback
-        return {
-          app: 'windsurf',
-          email,
-          password,
-          token: finalToken,
-          apiKey: finalToken,
-          tier: 'free',
-          status: 'active',
-          models: ['gpt-4o-mini', 'gemini-2.5-flash', 'glm-5.1'],
-          credits: {
-            daily_limit: 25,
-            daily_used: 0,
-            daily_remaining: 25
-          }
-        } as any
+        finalApiKey = finalToken
       }
     }
-
-    // 转换为 API Key
-    console.log('Converting to API key...')
-    const apiKey = await convertTokenToApiKey(idToken)
-    console.log(`API key obtained: ${apiKey.slice(0, 15)}...`)
 
     return {
       app: 'windsurf',
       email,
       password,
       token: finalToken,
-      apiKey,
+      apiKey: finalApiKey,
       tier: 'free',
       status: 'active',
       models: ['gpt-4o-mini', 'gemini-2.5-flash', 'glm-5.1'],

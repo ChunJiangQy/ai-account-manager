@@ -4,6 +4,7 @@ interface Account {
   email: string
   tier: string
   status: string
+  enabled?: boolean
   models: string[]
   credits: {
     daily_remaining: number
@@ -22,6 +23,11 @@ export default function AccountList({ accounts, onRefresh }: Props) {
       await (window as any).api.deleteAccount(id)
       onRefresh()
     }
+  }
+
+  const handleToggleEnabled = async (id: string, currentEnabled: boolean) => {
+    await (window as any).api.toggleAccountEnabled(id, !currentEnabled)
+    onRefresh()
   }
 
   const handleImport = async () => {
@@ -96,9 +102,20 @@ export default function AccountList({ accounts, onRefresh }: Props) {
                 ))}
               </div>
 
-              <button style={styles.deleteBtn} onClick={() => handleDelete(account.id)}>
-                删除
-              </button>
+              <div style={styles.buttonRow}>
+                <button
+                  style={{
+                    ...styles.toggleBtn,
+                    ...(account.enabled !== false ? styles.toggleBtnEnabled : styles.toggleBtnDisabled)
+                  }}
+                  onClick={() => handleToggleEnabled(account.id, account.enabled !== false)}
+                >
+                  {account.enabled !== false ? '✓ 已启用' : '✗ 已禁用'}
+                </button>
+                <button style={styles.deleteBtn} onClick={() => handleDelete(account.id)}>
+                  删除
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -205,8 +222,29 @@ const styles = {
     borderRadius: '4px',
     color: '#666'
   },
+  buttonRow: {
+    display: 'flex',
+    gap: '8px'
+  },
+  toggleBtn: {
+    flex: 1,
+    padding: '8px',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: 'bold' as const
+  },
+  toggleBtnEnabled: {
+    background: '#10b981',
+    color: 'white'
+  },
+  toggleBtnDisabled: {
+    background: '#f5f5f5',
+    color: '#999'
+  },
   deleteBtn: {
-    width: '100%',
+    flex: 1,
     padding: '8px',
     background: '#ef4444',
     color: 'white',

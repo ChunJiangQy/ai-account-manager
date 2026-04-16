@@ -66,6 +66,18 @@ export class EmailReader {
 
         console.log(`Checking email (attempt ${retryCount}/${maxRetries})...`)
 
+        // 检查 IMAP 连接状态，如果断开则重新连接
+        if (!this.imap || this.imap.state !== 'authenticated') {
+          console.log('IMAP connection lost, reconnecting...')
+          this.connect().then(() => {
+            checkEmail()
+          }).catch((err) => {
+            console.error('Failed to reconnect IMAP:', err)
+            reject(err)
+          })
+          return
+        }
+
         this.imap!.openBox('INBOX', false, (err) => {
           if (err) {
             reject(err)
@@ -102,16 +114,29 @@ export class EmailReader {
                 simpleParser(stream, (err, parsed) => {
                   if (err || foundCode) return
 
+                  // 打印邮件信息用于调试
+                  console.log('Email received:')
+                  console.log('  From:', parsed.from?.text)
+                  console.log('  To:', parsed.to?.text)
+                  console.log('  Subject:', parsed.subject)
+                  console.log('  Date:', parsed.date)
+
                   // 检查是否是发给目标邮箱的
                   const to = parsed.to?.text || ''
                   if (!to.includes(targetEmail)) {
+                    console.log(`  Skipped: not for ${targetEmail}`)
                     return
                   }
 
-                  // 检查邮件时间（最近5分钟）
+                  // 检查邮件时间（最近10分钟，放宽限制）
                   const emailDate = parsed.date
-                  if (emailDate && Date.now() - emailDate.getTime() > 5 * 60 * 1000) {
-                    return
+                  if (emailDate) {
+                    const ageMinutes = (Date.now() - emailDate.getTime()) / 60000
+                    console.log(`  Email age: ${ageMinutes.toFixed(1)} minutes`)
+                    if (ageMinutes > 10) {
+                      console.log('  Skipped: too old')
+                      return
+                    }
                   }
 
                   // 从邮件内容中提取验证码
@@ -119,12 +144,22 @@ export class EmailReader {
                   const html = parsed.html || ''
                   const content = text + ' ' + html
 
+                  console.log('  Content preview:', content.substring(0, 200))
+
                   const code = this.extractCode(content)
 
                   if (code && !foundCode) {
                     foundCode = true
                     console.log(`Found verification code: ${code}`)
+                    // 关闭 IMAP 连接
+                    if (this.imap) {
+                      this.imap.closeBox((err) => {
+                        if (err) console.error('Error closing mailbox:', err)
+                      })
+                    }
                     resolve(code)
+                  } else {
+                    console.log('  No code found in this email')
                   }
                 })
               })
@@ -132,9 +167,17 @@ export class EmailReader {
 
             fetch.once('end', () => {
               if (!foundCode) {
-                // 没有找到验证码，3秒后重试
-                console.log('No verification code found, retrying in 3 seconds...')
-                setTimeout(checkEmail, 3000)
+                // 没有找到验证码，关闭邮箱后重试
+                if (this.imap) {
+                  this.imap.closeBox((err) => {
+                    if (err) console.error('Error closing mailbox:', err)
+                    console.log('No verification code found, retrying in 3 seconds...')
+                    setTimeout(checkEmail, 3000)
+                  })
+                } else {
+                  console.log('No verification code found, retrying in 3 seconds...')
+                  setTimeout(checkEmail, 3000)
+                }
               }
             })
 

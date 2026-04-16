@@ -5,7 +5,8 @@ import {
   initAccountManager,
   getAllAccounts,
   addAccount,
-  deleteAccount
+  deleteAccount,
+  toggleAccountEnabled
 } from './services/account-manager'
 import { getEmailConfig, saveEmailConfig } from './services/email-config'
 import { getProxyConfig, saveProxyConfig } from './services/proxy-config'
@@ -44,6 +45,10 @@ function setupIPC(): void {
 
   ipcMain.handle('delete-account', (_, id) => {
     return deleteAccount(id)
+  })
+
+  ipcMain.handle('toggle-account-enabled', (_, id, enabled) => {
+    return toggleAccountEnabled(id, enabled)
   })
 
   ipcMain.handle('import-accounts', (_, accounts) => {

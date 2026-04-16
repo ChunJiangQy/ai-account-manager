@@ -9,6 +9,7 @@ export interface Account {
   apiKey?: string
   tier: 'free' | 'pro'
   status: 'active' | 'disabled' | 'error'
+  enabled?: boolean
   models: string[]
   credits: {
     daily_limit: number
@@ -91,6 +92,7 @@ export function deleteAccount(id: string): boolean {
 export function getAvailableAccount(model: string): Account | null {
   const accounts = getAllAccounts().filter(
     acc => acc.status === 'active' &&
+           acc.enabled !== false &&
            acc.models.includes(model) &&
            acc.credits.daily_remaining > 0
   )
@@ -101,4 +103,8 @@ export function getAvailableAccount(model: string): Account | null {
   return accounts.reduce((prev, curr) =>
     curr.credits.daily_remaining > prev.credits.daily_remaining ? curr : prev
   )
+}
+
+export function toggleAccountEnabled(id: string, enabled: boolean): boolean {
+  return updateAccount(id, { enabled })
 }

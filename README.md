@@ -1,6 +1,6 @@
 # AI Account Manager
 
-多平台 AI 账号管理系统，支持 Windsurf、Kiro、Cursor 等平台的自动注册、账号管理和 OpenAI 兼容的反向代理服务。
+多平台 AI 账号管理系统，支持 Windsurf、平台的自动注册、账号管理和 OpenAI Anthropic 兼容的反向代理服务。
 
 ## 功能特性
 
